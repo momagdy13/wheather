@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:wheather/models/weather_models.dart';
-import 'package:wheather/provider/weather_provider.dart';
-import 'package:wheather/services/weather_services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wheather/cubits/weather_cubit/weather_cubit.dart';
 
 class SearchPage extends StatelessWidget {
   String? cityName;
@@ -31,15 +29,9 @@ class SearchPage extends StatelessWidget {
             },
             onSubmitted: (data) async {
               cityName = data;
-
-              WeatherServices services = WeatherServices();
-              WeatherModel? weather =
-                  await services.getWeather(cityName: cityName!);
-              Provider.of<WeatherProvider>(context, listen: false).weatherData =
-                  weather;
-              Provider.of<WeatherProvider>(context, listen: false).cityName =
-                  cityName;
-
+              BlocProvider.of<WeatherCubit>(context)
+                  .getWeather(cityName: cityName!);
+              BlocProvider.of<WeatherCubit>(context).cityName = cityName;
               Navigator.pop(context);
             },
             decoration: const InputDecoration(

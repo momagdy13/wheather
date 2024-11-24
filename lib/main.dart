@@ -1,55 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wheather/cubits/weather_cubit/weather_cubit.dart';
 import 'package:wheather/pages/home_page.dart';
-import 'package:wheather/provider/weather_provider.dart';
+import 'package:wheather/services/weather_services.dart';
 
 void main() {
-  runApp(ChangeNotifierProvider(
-    create: (context) => WeatherProvider(),
-    child: WheatherApp(),
-  ));
+  runApp(WeatherApp());
 }
 
-class WheatherApp extends StatefulWidget {
-  @override
-  _WheatherAppState createState() => _WheatherAppState();
-}
-
-class _WheatherAppState extends State<WheatherApp> {
-  ThemeMode _themeMode = ThemeMode.light;
-
-  void toggleTheme() {
-    setState(() {
-      _themeMode =
-          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
-
+class WeatherApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-        ),
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.black,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[900],
-          foregroundColor: Colors.white,
-        ),
-      ),
-      themeMode: _themeMode,
-      home: HomePage(
-        onToggleTheme: toggleTheme,
+    return BlocProvider(
+      create: (context) => WeatherCubit(WeatherServices()),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Weather App',
+        home: HomePage(),
       ),
     );
   }

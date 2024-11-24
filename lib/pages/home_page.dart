@@ -1,39 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wheather/cubits/weather_cubit/weather_cubit.dart';
+import 'package:wheather/cubits/weather_cubit/weather_state.dart';
 import 'package:wheather/models/weather_models.dart';
 import 'package:wheather/pages/search_page.dart';
-import 'package:wheather/provider/weather_provider.dart';
 
-class HomePage extends StatefulWidget {
-  final VoidCallback onToggleTheme;
+class HomePage extends StatelessWidget {
+  HomePage({super.key});
 
-  HomePage({super.key, required this.onToggleTheme});
+  // Helper method for dynamic weather image retrieval
+  String getWeatherImage(String state) {
+    switch (state) {
+      case 'Clear':
+        return 'assets/images/clear.png';
+      case 'Rainy':
+        return 'assets/images/rainy.png';
+      case 'Cloudy':
+        return 'assets/images/cloudy.png';
+      default:
+        return 'assets/images/clear.png';
+    }
+  }
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
   WeatherModel? weatherData;
 
   @override
   Widget build(BuildContext context) {
-    weatherData =
-        Provider.of<WeatherProvider>(context, listen: true).weatherData;
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.black,
         actions: [
-          IconButton(
-            onPressed: widget.onToggleTheme,
-            icon: Icon(
-              isDarkMode ? Icons.light_mode : Icons.dark_mode,
-              color: Colors.white,
-              size: 30,
-            ),
-          ),
           IconButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) {
@@ -52,75 +47,139 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: Colors.white, fontSize: 20),
         ),
       ),
-      body: weatherData == null
-          ? const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
+      body: BlocBuilder<WeatherCubit, WeatherState>(
+        builder: (context, state) {
+          if (state is WeatherLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (state is WeatherSuccess) {
+            weatherData = state.weatherModel;
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(height: 8),
                     Text(
-                      'There is no weather 😔 Start',
-                      style: TextStyle(
-                        fontSize: 30,
+                      BlocProvider.of<WeatherCubit>(context).cityName!,
+                      style: const TextStyle(
+                        fontSize: 80,
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Text(
-                      'Searching now 🔍',
-                      style: TextStyle(
-                        fontSize: 30,
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsets.only(bottom: 150),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    Provider.of<WeatherProvider>(context).cityName!,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      'Updated: ${weatherData!.date ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 18),
                     ),
-                  ),
-                  Text('Updated: ${weatherData!.date}',
-                      style: const TextStyle(fontSize: 18)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 100),
-                    child: Row(
+                    const SizedBox(height: 50),
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Image.asset('assets/images/clear.png'),
+                        Image.asset(
+                          getWeatherImage(weatherData!.weatherStateName),
+                          width: 100,
+                          height: 100,
+                        ),
                         Text(
                           '${weatherData!.temp}°C',
                           style: const TextStyle(
-                            fontSize: 32,
+                            fontSize: 50,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Column(
                           children: [
-                            Text('Max Temp: ${weatherData!.maxTemp.toInt()}°C'),
-                            Text('Min Temp: ${weatherData!.minTemp.toInt()}°C'),
+                            Text(
+                              'Max: ${weatherData!.maxTemp.toInt()}°C',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            Text(
+                              'Min: ${weatherData!.minTemp.toInt()}°C',
+                              style: const TextStyle(fontSize: 18),
+                            ),
                           ],
-                        )
+                        ),
                       ],
                     ),
-                  ),
-                  Text(
-                    weatherData!.weatherStateName,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 50),
+                    Text(
+                      weatherData!.weatherStateName,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  )
-                ],
+                  ],
+                ),
               ),
-            ),
+            );
+          } else if (state is WeatherFailure) {
+            return FailedScreen();
+          } else {
+            return DefaultScreen();
+          }
+        },
+      ),
+    );
+  }
+}
+
+class FailedScreen extends StatelessWidget {
+  const FailedScreen({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Something went wrong!',
+            style: TextStyle(fontSize: 24, color: Colors.red),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => SearchPage()));
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DefaultScreen extends StatelessWidget {
+  const DefaultScreen({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'No weather data available 😔',
+            style: TextStyle(fontSize: 24),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => SearchPage()));
+            },
+            child: const Text('Search for Weather'),
+          ),
+        ],
+      ),
     );
   }
 }
